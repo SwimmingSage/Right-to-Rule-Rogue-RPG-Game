@@ -88,9 +88,9 @@ variableBattleText = function(){
 		ctx.textAlign="left";
 		ctx.fillStyle = ("#FFFFFF");
 		ctx.font = "25px Bold";
-		ctx.fillText("Magical Burst(2)",70,560);
+		ctx.fillText("Magical Burst(1)",70,560);
 		if(player.healUnlocked === true)
-			ctx.fillText("Heal(4)",275,560);
+			ctx.fillText("Heal(3)",275,560);
 		if(player.magicSelectionPosition === 1)
 			ctx.fillText(">",50,560);
 		if(player.magicSelectionPosition === 2)
