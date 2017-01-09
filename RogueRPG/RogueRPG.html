@@ -1,0 +1,262 @@
+<center>
+<canvas id="ctx" width="800" height="600" style="border:1px solid #000000;" ></canvas>
+</center>
+<script src="RogueRPGjs/setUp.js"></script>
+<script src="RogueRPGjs/keyInputs.js"></script>
+<script src="RogueRPGjs/gameStates.js"></script>
+<script src="RogueRPGjs/characters.js"></script>
+<script src="RogueRPGjs/drawBattle.js"></script>
+<script src="RogueRPGjs/battleLogic.js"></script>
+<script src="RogueRPGjs/mapCollisions.js"></script>
+<script src="RogueRPGjs/mapCode.js"></script>
+<script src="RogueRPGjs/levelUp.js"></script>
+<script src="RogueRPGjs/drawGameIntro.js"></script>
+<script> 
+
+update = function(){
+	if(gameState.homeMenu){
+		updateHomeMenu();
+	}
+
+	if(gameState.gameIntro){
+		if(inactiveTime > 0)
+			inactiveTime -= 1;
+		updateGameIntro();
+	}
+
+	if(gameState.inGame === true){
+		if(inactiveTime > 0)
+			inactiveTime -= 1;
+		updateinGame();
+	}
+
+	if(gameState.inBattle){
+		if(player.battlingEnemy === false){
+			currentEnemy = generateEnemy();
+			player.battlingEnemy = true;
+			timeUntilAction = 16;
+			enterBattleIntro();
+		}
+		updateBattle();
+		if(timeUntilAction > 0){
+			timeUntilAction -= 1;
+		}
+	}
+
+	if(gameState.inTransition){
+		inactiveTime -= 1
+		if(inactiveTime === 0)
+			enterBattle();
+		ctx.save();
+		ctx.fillStyle = ("#000000");
+		ctx.fillRect(transitionBarX,0,WIDTH,HEIGHT);
+		transitionBarX += 40;
+		ctx.restore();
+	}
+
+	if(gameState.levelUp){
+		updateLevelUp();
+		if(timeUntilAction > 0){
+			timeUntilAction -= 1;
+		}
+	}
+
+
+	if(gameState.inMenu){
+
+	}
+
+	if(gameState.inShop){
+
+	}
+
+	if(gameState.inDeathScreen){
+		updateInDeathScreen();
+	}
+
+	if(gameState.endGame){
+		updateEndGameScreen();
+	}
+
+};
+
+updateHomeMenu = function(){
+	ctx.save();
+	//centering these images and also making them drawn to exact dimensions of image, thus hardcoded here
+	ctx.drawImage(Img.HomeScreen,0,0,1920,960,0,0,WIDTH,HEIGHT);
+	ctx.drawImage(Img.GameTitle,(WIDTH/2) - (Img.GameTitle.width/2),120,691,123);
+	ctx.drawImage(Img.EnterToBegin,(WIDTH/2) - (Img.EnterToBegin.width/2),HEIGHT/2,476,52);
+	ctx.restore();
+};
+
+updateGameIntro = function(){
+	ctx.clearRect(0,0,WIDTH,HEIGHT);
+	ctx.save();
+	drawGameIntro();
+	ctx.restore();
+}
+
+updateinGame = function(){
+	ctx.clearRect(0,0,WIDTH,HEIGHT);
+	//case in which showStats is false
+	ctx.save();
+	ctx.fillStyle = ("#000000")
+	ctx.fillRect(0,0,WIDTH,HEIGHT);
+	ctx.restore();
+	if(showStats === false && inactiveTime === 0){
+		if(timeUntilMovement > 0){
+			timeUntilMovement -= 1;
+			if(player.movedright === true)
+				player.x += 8;
+			if(player.movedleft === true)
+				player.x -= 8;
+			if(player.movedup === true)
+				player.y -= 8;
+			if(player.moveddown === true)
+				player.y += 8;
+		}
+		Maps.activeMap.nextFloor({x:player.x,y:player.y});
+		Maps.activeMap.draw();
+
+		player.upperStatBar();
+		player.update();
+	}
+	else{
+		Maps.activeMap.nextFloor({x:player.x,y:player.y});
+		Maps.activeMap.draw();
+		player.upperStatBar();
+		player.drawInGame();
+		player.showAllStats();
+	}
+};
+
+
+generateEnemy = function(){
+	if(player.floorlevel < 3){
+		enemySelector = Math.random();
+		if(enemySelector <= 0.6){
+			//createEnemy = function(type,name,image,maxhp,hp,attack,defense,speed,hitLandRate,defendRate,xp,gold)
+			//make snake enemy
+			var self = createEnemy("enemy","Serpent",Img.snake,14,14,7,3,8,0.75,0.10,8,10);
+		}
+		if(enemySelector > 0.6){
+			var self = createEnemy("enemy","Enchanter",Img.enchanter,16,16,9,4,3,0.70,0.15,12,15);
+		}
+	}
+	else if(player.floorlevel >= 3){
+		enemySelector = Math.random();
+		if(enemySelector <= 0.8)
+			var self = createEnemy("enemy","Warrior of Old",Img.warriorofold,26,26,12,8,10,0.85,0.20,25,40);
+		if(enemySelector > 0.8)
+			var self = createEnemy("enemy","Fighting Lord",Img.FightingLord,32,32,14,8,6,0.75,0.30,50,100);
+	}
+	return self;
+}
+
+updateBattle = function(){
+	drawbattle();
+	player.drawInBattle();
+	currentEnemy.drawInBattle();
+
+	//once occurence where I want stuff to draw over player and enemy
+	if(battleState.battleStatIncrease)
+		drawLevelUpStatIncreases();
+
+}
+
+promptBack = function(){
+	ctx.textAlign = "center";
+	ctx.font = "15px Arial";
+	ctx.fillText("(Press backspace to go back)",690,520);
+}
+
+promptContinue = function(){
+	if(timeUntilAction === 0){
+		player.hp = player.roundedHP();
+		player.mana = player.roundedMana();
+		ctx.textAlign="center";
+		ctx.fillStyle = ("#FFFFFF");
+		ctx.font = "15px Arial";
+		if(battleState.playerSelection || battleState.playerMagicSelection || levelUpStates.chooseStat){
+			ctx.fillText("(Press enter to select)",promptContinueX,promptContinueY);
+		}
+		else{
+			ctx.fillText("(Press enter to continue)",promptContinueX,promptContinueY);
+		}
+	}
+};
+
+promptContinueIntro = function(){
+	if(inactiveTime === 0 && gameState.gameIntro){
+		ctx.font = "20px Bold";
+		if(gameIntroStates.selectClass){
+    		ctx.fillText("(Press enter to select)",400,580);
+		} 
+		else{
+			ctx.fillText("(Press enter to continue)",400,500);
+		}
+	}
+}
+
+
+updateInDeathScreen = function(){
+	ctx.save();
+	ctx.fillStyle = "000000";
+	ctx.fillRect(0,0,800,600); 
+	ctx.fillStyle = "#FFFFFF";
+	ctx.textAlign = "center";
+	ctx.font = 'italic 35px Bold';
+	ctx.fillText("To think you would die at this point. . .",400,150);
+	ctx.fillText("You fell at merely floor "+player.floorlevel+".",400,250);
+	ctx.fillText("A valiant effort. . . but you are clearly not fit it rule",400,350);
+	ctx.font = '20px Bold';
+	ctx.fillText("(Press enter to return to the main menu)",400,550);
+	ctx.restore();
+}
+
+updateEndGameScreen = function(){
+	ctx.save();
+	ctx.fillStyle = "000000";
+	ctx.fillRect(0,0,800,600); 
+	ctx.fillStyle = "#FFFFFF";
+	ctx.textAlign = "center";
+	ctx.font = 'italic 35px Bold';
+	ctx.fillText("(100s of years later)",400,150);
+	ctx.fillText('Elder - ". . . And that is the tale of the ascent of our',400,250);
+	ctx.fillText('ruler, the one who has led Ghalicas to a golden era,',400,350);
+	ctx.fillText('the last king to earn the right, the Right to Rule. . ."',400,450);
+	ctx.font = '20px Bold';
+	ctx.fillText("(Press enter to return to the main menu)",400,550);
+	ctx.restore();
+}
+
+startNewGame = function(){
+	player = Player();
+	Maps.activeMap = Maps(TowerFloor1);
+	enterGame();
+}
+
+bootUpGame = function(){
+	enterHomeMenu();
+}
+
+bootUpGame();
+
+setInterval(update,40);
+
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
