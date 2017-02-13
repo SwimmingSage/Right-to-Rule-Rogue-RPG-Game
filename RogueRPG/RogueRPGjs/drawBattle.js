@@ -335,7 +335,7 @@ drawLevelUpStatIncreases = function(){
 	drawStatIncrease(hpIncrease,180);
 	drawStatIncrease(manaIncrease,220);
 	drawStatIncrease(attackIncrease,260);
-	drawStatIncrease(defenseIncrease,300);
+	drawStatIncrease(magicIncrease,300);
 	drawStatIncrease(defenseIncrease,340);
 	drawStatIncrease(speedIncrease,380);
 
